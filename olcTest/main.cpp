@@ -7,9 +7,13 @@ using namespace std;
 class CMD_Snake : public olcConsoleGameEngine
 {
 public:
-	struct Cartesian {
+	struct fCartesian {
 		float x;
 		float y;
+	};
+	struct iCartesian {
+		int x;
+		int y;
 	};
 
 	CMD_Snake() { m_sAppName = L"CMD_Snake"; }
@@ -22,8 +26,8 @@ public:
 		mapHeight = ScreenHeight();
 		mHead = { (float)mapWidth / 2,(float)mapHeight / 2 };
 
-		mSnakeTail.push_back({ mHead.x + 1, mHead.y });
-		mSnakeTail.push_back({ mHead.x + 2, mHead.y });
+		mSnakeTail.push_back({ (int)mHead.x + 1, (int)mHead.y });
+		mSnakeTail.push_back({ (int)mHead.x + 2, (int)mHead.y });
 
 		mFruit = { (float)(rand() % (mapWidth - 2)) + 1, (float)(rand() % (mapHeight - 2) + 1) };
 		mDirection = { 0, 0 };
@@ -48,31 +52,32 @@ public:
 		if (!bGameOver)
 		{
 			//Refresh the screen
-			Fill(0, 0, ScreenWidth(), ScreenHeight(), L' ');
+			Fill(0, 0, ScreenWidth(), ScreenHeight(), ' ');
 			//Input
-			inputHandling();
+			if (IsFocused())
+				inputHandling();
 			//Game Logic
 			for (size_t i = mSnakeTail.size() - 1; i >= 1; i--)
 			{
-				mSnakeTail.at(i).x = mSnakeTail.at(i - 1).x;
-				mSnakeTail.at(i).y = mSnakeTail.at(i - 1).y;
+				mSnakeTail.at(i).x = (int)mSnakeTail.at(i - 1).x;
+				mSnakeTail.at(i).y = (int)mSnakeTail.at(i - 1).y;
 			}
-			mSnakeTail.at(0).x = mHead.x;
-			mSnakeTail.at(0).y = mHead.y;
+			mSnakeTail.at(0).x = (int)mHead.x;
+			mSnakeTail.at(0).y = (int)mHead.y;
 
-			mHead.x += mSpeedX * mDirection.x;
-			mHead.y += mSpeedY * mDirection.y;
+			mHead.x += mSpeedX * mDirection.x * fElapsedTime;
+			mHead.y += mSpeedY * mDirection.y * fElapsedTime;
 			//Teleporting to opposite side when attempting to exit boundries
-			if (mHead.x == mapWidth - 1)
+			if ((int)mHead.x == mapWidth - 1)
 				mHead.x = 1;
-			if (mHead.x == 0)
+			if ((int)mHead.x == 0)
 				mHead.x = mapWidth - 2;
-			if (mHead.y == 0)
+			if ((int)mHead.y == 0)
 				mHead.y = mapHeight - 2;
-			if (mHead.y == mapHeight - 1)
+			if ((int)mHead.y == mapHeight - 1)
 				mHead.y = 1;
 			//Increase the tail size and spawn new fruit
-			if (mHead.x == mFruit.x && mHead.y == mFruit.y)
+			if ((int)mHead.x == (int)mFruit.x && (int)mHead.y == (int)mFruit.y)
 			{
 				mSnakeTail.push_back({ -1, -1 });
 				mCurrentScore++;
@@ -80,21 +85,21 @@ public:
 				mFruit.y = (float)(rand() % (mapHeight - 2) + 1);
 			}
 			//Detecting colision with tail
-			for (Cartesian& tailSegment : mSnakeTail)
-				if (mHead.x == tailSegment.x && mHead.y == tailSegment.y && mCurrentScore != 0)
+			for (iCartesian& tailSegment : mSnakeTail)
+				if ((int)mHead.x == (int)tailSegment.x && (int)mHead.y == (int)tailSegment.y && mCurrentScore != 0)
 					bGameOver = true;
 			//Drawing on screen
 			for (int i = 0; i < mapWidth; i++)
 				for (int j = 0; j < mapHeight; j++)
 					if (i == 0 || i == mapWidth - 1 || j == 0 || j == mapHeight - 1)
-						Draw(i, j, 9608, COLOUR::FG_DARK_GREEN);
+						Draw(i, j, 9608, COLOUR::FG_DARK_GREEN);		//Draw the walls
 			Draw(mHead.x, mHead.y, '@', COLOUR::FG_BLUE);
-			for (Cartesian& tailSegment : mSnakeTail)
+			for (iCartesian& tailSegment : mSnakeTail)
 				Draw(tailSegment.x, tailSegment.y, 'o', COLOUR::FG_BLUE);
 			Draw(mFruit.x, mFruit.y, '$', COLOUR::FG_RED);
 			DrawString(mapWidth + 1, mapHeight * 1 / 4, L"YOUR SCORE: " + to_wstring(mCurrentScore));
 
-			Sleep(50);
+			//Sleep(50);
 		}
 		else //Game over
 		{
@@ -107,8 +112,8 @@ public:
 				mHead = { (float)mapWidth / 2,(float)mapHeight / 2 };
 				mFruit = { (float)(rand() % (mapWidth - 2)) + 2, (float)(rand() % (mapHeight - 2) + 2) };
 				mSnakeTail.erase(mSnakeTail.begin(), mSnakeTail.end());
-				mSnakeTail.push_back({ mHead.x + 1, mHead.y });
-				mSnakeTail.push_back({ mHead.x + 2, mHead.y });
+				mSnakeTail.push_back({ (int)mHead.x + 1, (int)mHead.y });
+				mSnakeTail.push_back({ (int)mHead.x + 2, (int)mHead.y });
 			}
 		}
 		return true;
@@ -116,9 +121,9 @@ public:
 private:
 	int32_t mapWidth, mapHeight;
 	uint32_t mCurrentScore, mHighScore;
-	Cartesian mHead, mFruit, mDirection;
-	float mSpeedX = 1.0f, mSpeedY = 1.0f;
-	vector<Cartesian> mSnakeTail;
+	fCartesian mHead, mFruit, mDirection;
+	float mSpeedX = 10.0f, mSpeedY = 10.0f;
+	vector<iCartesian> mSnakeTail;
 	bool bGameOver;
 };
 
