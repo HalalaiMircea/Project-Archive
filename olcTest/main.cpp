@@ -36,87 +36,97 @@ public:
 
 	void inputHandling()
 	{
-		if (m_keys[VK_UP].bPressed && mHead.direction.y != 1)
-			mHead.direction = { 0, -1 };
-		if (m_keys[VK_LEFT].bPressed && mHead.direction.x != 1)
-			mHead.direction = { -1, 0 };
-		if (m_keys[VK_RIGHT].bPressed && mHead.direction.x != -1)
-			mHead.direction = { 1, 0 };
-		if (m_keys[VK_DOWN].bPressed && mHead.direction.y != -1)
-			mHead.direction = { 0, 1 };
+		if (IsFocused())
+		{
+			if (m_keys[VK_UP].bPressed && mHead.direction.y != 1)
+				mHead.direction = { 0, -1 };
+			if (m_keys[VK_LEFT].bPressed && mHead.direction.x != 1)
+				mHead.direction = { -1, 0 };
+			if (m_keys[VK_RIGHT].bPressed && mHead.direction.x != -1)
+				mHead.direction = { 1, 0 };
+			if (m_keys[VK_DOWN].bPressed && mHead.direction.y != -1)
+				mHead.direction = { 0, 1 };
+		}
 	}
 
+	void gameLogic()
+	{
+		//Teleporting to opposite side when attempting to exit boundries
+		if ((int)mHead.pos.x == mapWidth - 1)
+			mHead.pos.x = 1;
+		if ((int)mHead.pos.x == 0)
+			mHead.pos.x = mapWidth - 2;
+		if ((int)mHead.pos.y == 0)
+			mHead.pos.y = mapHeight - 2;
+		if ((int)mHead.pos.y == mapHeight - 1)
+			mHead.pos.y = 1;
+		//Increase the tail size and spawn new fruit
+		if ((int)mHead.pos.x == (int)mFruit.x && (int)mHead.pos.y == (int)mFruit.y)
+		{
+			mTail.push_back({ -1, -1, 0, 0 });
+			mCurrentScore++;
+			mFruit.x = (float)(rand() % (mapWidth - 2) + 1);
+			mFruit.y = (float)(rand() % (mapHeight - 2) + 1);
+		}
+		//Detecting colision with tail
+		for (SnakeSegmentInfo& tailSegment : mTail)
+			if (mHead.pos.x == tailSegment.pos.x && mHead.pos.y == tailSegment.pos.y && mCurrentScore != 0)
+				bGameOver = true;
+	}
+
+	void updatePositions(float fElapsedTime)
+	{
+		//Copy direction for each tail segment from the previous one
+		/*mTail.at(0).direction.x = mHead.direction.x;
+		mTail.at(0).direction.y = mHead.direction.y;
+		for (size_t i = 0; i <= mTail.size() - 2; i++)
+		{
+			mTail.at(i + 1).direction.x = mTail.at(i).direction.x;
+			mTail.at(i + 1).direction.y = mTail.at(i).direction.y;
+		}*/
+		for (size_t i = mTail.size() - 1; i >= 1; i--)
+		{
+			mTail.at(i).direction.x = mTail.at(i - 1).direction.x;
+			mTail.at(i).direction.y = mTail.at(i - 1).direction.y;
+		}
+		mTail.at(0).direction.x = mHead.direction.x;
+		mTail.at(0).direction.y = mHead.direction.y;
+
+		for (size_t i = 0; i < mTail.size(); i++)
+		{
+			mTail.at(i).pos.x += SPEED.x * mTail.at(i).direction.x * fElapsedTime;
+			mTail.at(i).pos.y += SPEED.y * mTail.at(i).direction.y * fElapsedTime;
+		}
+		mHead.pos.x += SPEED.x * mHead.direction.x * fElapsedTime;
+		mHead.pos.y += SPEED.y * mHead.direction.y * fElapsedTime;
+	}
+
+	void drawOnScreen()
+	{
+		//Refresh the screen
+		Fill(0, 0, ScreenWidth(), ScreenHeight(), L' ');
+		//Drawing on screen
+		for (int i = 0; i < mapWidth; i++)
+			for (int j = 0; j < mapHeight; j++)
+				if (i == 0 || i == mapWidth - 1 || j == 0 || j == mapHeight - 1)
+					Draw(i, j, 9608, COLOUR::FG_DARK_GREEN);
+		Draw((int)mHead.pos.x, (int)mHead.pos.y, '@', COLOUR::FG_BLUE);
+		for (SnakeSegmentInfo& tailSegment : mTail)
+			Draw((int)tailSegment.pos.x, (int)tailSegment.pos.y, 'o', COLOUR::FG_BLUE);
+		Draw(mFruit.x, mFruit.y, '$', COLOUR::FG_RED);
+		DrawString(mapWidth + 1, mapHeight * 1 / 4, L"YOUR SCORE: " + to_wstring(mCurrentScore));
+
+		//Sleep(50);
+	}
+	//Game Loop
 	virtual bool OnUserUpdate(float fElapsedTime) override
 	{
 		if (!bGameOver)
 		{
-			/////
-			/////Game Logic
-			/////
-			//Copy direction for each tail segment from the previous one
-			/*mTail.at(0).direction.x = mHead.direction.x;
-			mTail.at(0).direction.y = mHead.direction.y;
-			for (size_t i = 0; i <= mTail.size() - 2; i++)
-			{
-				mTail.at(i + 1).direction.x = mTail.at(i).direction.x;
-				mTail.at(i + 1).direction.y = mTail.at(i).direction.y;
-			}*/
-
-			for (size_t i = mTail.size() - 1; i >= 1; i--)
-			{
-				mTail.at(i).direction.x = mTail.at(i - 1).direction.x;
-				mTail.at(i).direction.y = mTail.at(i - 1).direction.y;
-			}
-			mTail.at(0).direction.x = mHead.direction.x;
-			mTail.at(0).direction.y = mHead.direction.y;
-
-			for (size_t i = 0; i < mTail.size(); i++)
-			{
-				mTail.at(i).pos.x += SPEED.x * mTail.at(i).direction.x * fElapsedTime;
-				mTail.at(i).pos.y += SPEED.y * mTail.at(i).direction.y * fElapsedTime;
-			}
-			//Input
-			if (IsFocused())
-				inputHandling();
-			mHead.pos.x += SPEED.x * mHead.direction.x * fElapsedTime;
-			mHead.pos.y += SPEED.y * mHead.direction.y * fElapsedTime;
-
-
-			//Teleporting to opposite side when attempting to exit boundries
-			//if ((int)mHead.pos.x == mapWidth - 1)
-			//	mHead.pos.x = 1;
-			//if ((int)mHead.pos.x == 0)
-			//	mHead.pos.x = mapWidth - 2;
-			//if ((int)mHead.pos.y == 0)
-			//	mHead.pos.y = mapHeight - 2;
-			//if ((int)mHead.pos.y == mapHeight - 1)
-			//	mHead.pos.y = 1;
-			////Increase the tail size and spawn new fruit
-			//if ((int)mHead.pos.x == (int)mFruit.x && (int)mHead.pos.y == (int)mFruit.y)
-			//{
-			//	mTail.push_back({ -1, -1, 0, 0 });
-			//	mCurrentScore++;
-			//	mFruit.x = (float)(rand() % (mapWidth - 2) + 1);
-			//	mFruit.y = (float)(rand() % (mapHeight - 2) + 1);
-			//}
-			////Detecting colision with tail
-			//for (SnakeSegmentInfo& tailSegment : mTail)
-			//	if (mHead.pos.x == tailSegment.pos.x && mHead.pos.y == tailSegment.pos.y && mCurrentScore != 0)
-			//		bGameOver = true;
-			//Refresh the screen
-			Fill(0, 0, ScreenWidth(), ScreenHeight(), L' ');
-			//Drawing on screen
-			for (int i = 0; i < mapWidth; i++)
-				for (int j = 0; j < mapHeight; j++)
-					if (i == 0 || i == mapWidth - 1 || j == 0 || j == mapHeight - 1)
-						Draw(i, j, 9608, COLOUR::FG_DARK_GREEN);
-			Draw((int)mHead.pos.x, (int)mHead.pos.y, '@', COLOUR::FG_BLUE);
-			for (SnakeSegmentInfo& tailSegment : mTail)
-				Draw((int)tailSegment.pos.x, (int)tailSegment.pos.y, 'o', COLOUR::FG_BLUE);
-			Draw(mFruit.x, mFruit.y, '$', COLOUR::FG_RED);
-			DrawString(mapWidth + 1, mapHeight * 1 / 4, L"YOUR SCORE: " + to_wstring(mCurrentScore));
-
-			//Sleep(50);
+			inputHandling();
+			gameLogic();
+			updatePositions(fElapsedTime);
+			drawOnScreen();
 		}
 		else //Game over
 		{
